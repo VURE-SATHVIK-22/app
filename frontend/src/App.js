@@ -354,7 +354,7 @@ const WellnessResources = () => {
           
           <TabsContent value="helplines" className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
-              {Object.values(helplines).map((helpline, index) => (
+              {Object.entries(helplines).map(([key, helpline], index) => (
                 <Card key={index} className="border-l-4 border-l-red-400 shadow-md">
                   <CardHeader>
                     <CardTitle className="text-lg text-slate-800 flex items-center">
