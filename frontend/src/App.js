@@ -258,13 +258,28 @@ const ChatInterface = () => {
                     className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
                       message.type === 'user'
                         ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                        : 'bg-white border border-slate-200 text-slate-800'
+                        : message.isLoading 
+                          ? 'bg-blue-50 border border-blue-200 text-blue-800'
+                          : 'bg-white border border-slate-200 text-slate-800'
                     } ${message.isCrisis ? 'border-red-300 bg-red-50' : ''}`}
                   >
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                    <p className={`text-xs mt-2 ${message.type === 'user' ? 'text-white/70' : 'text-slate-500'}`}>
-                      {message.timestamp.toLocaleTimeString()}
-                    </p>
+                    {message.isLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                        </div>
+                        <p className="text-sm">{message.content}</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-relaxed">{message.content}</p>
+                    )}
+                    {!message.isLoading && (
+                      <p className={`text-xs mt-2 ${message.type === 'user' ? 'text-white/70' : 'text-slate-500'}`}>
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
