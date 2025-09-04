@@ -151,11 +151,24 @@ const ChatInterface = () => {
     setInputMessage("");
     setIsLoading(true);
 
+    // Add a loading message
+    const loadingMessage = {
+      id: 'loading',
+      type: 'ai',
+      content: 'Thinking and processing your message...',
+      timestamp: new Date(),
+      isLoading: true
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+
     try {
       const response = await axios.post(`${API}/chat`, {
         session_id: sessionId,
         message: inputMessage
-      });
+      }, { timeout: 20000 }); // 20 second timeout
+
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => msg.id !== 'loading'));
 
       const aiMessage = {
         id: response.data.id,
@@ -173,12 +186,26 @@ const ChatInterface = () => {
       }
     } catch (error) {
       console.error('Chat error:', error);
-      const errorMessage = {
-        id: Date.now().toString(),
-        type: 'ai',
-        content: "I'm having trouble connecting right now. If you're in crisis, please call a mental health helpline immediately. Your wellbeing is important.",
-        timestamp: new Date()
-      };
+      
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => msg.id !== 'loading'));
+      
+      let errorMessage;
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        errorMessage = {
+          id: Date.now().toString(),
+          type: 'ai',
+          content: "I'm taking longer than usual to respond. Your message is important to me. If you're in crisis, please don't wait - contact one of the helplines in the Crisis Support section or call emergency services immediately.",
+          timestamp: new Date()
+        };
+      } else {
+        errorMessage = {
+          id: Date.now().toString(),
+          type: 'ai',
+          content: "I'm having trouble connecting right now. Your wellbeing is important - if you're in crisis, please call a mental health helpline immediately.",
+          timestamp: new Date()
+        };
+      }
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
