@@ -116,7 +116,7 @@ def detect_crisis(message: str) -> bool:
     return False
 
 async def get_ai_response(message: str, session_id: str, is_crisis: bool = False) -> str:
-    """Get AI response with mental health context"""
+    """Get AI response with mental health context and timeout handling"""
     try:
         system_message = """You are a compassionate, culturally-sensitive mental health support AI designed specifically for Indian youth. 
 
@@ -128,6 +128,7 @@ IMPORTANT GUIDELINES:
 - Acknowledge academic and social pressures common in Indian society
 - Be sensitive to family dynamics and cultural expectations
 - If discussing serious mental health concerns, gently suggest professional help
+- Keep responses concise but warm (2-4 sentences maximum)
 
 CRISIS PROTOCOL:
 - If the user expresses suicidal thoughts or self-harm, acknowledge their pain with empathy
@@ -140,6 +141,7 @@ Always respond in a warm, understanding tone that makes the user feel heard and 
         if is_crisis:
             system_message += "\n\nCRISIS ALERT: This user may be in crisis. Respond with immediate empathy and care while directing them to professional help."
 
+        # Create chat instance with shorter timeout
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=session_id,
@@ -147,12 +149,26 @@ Always respond in a warm, understanding tone that makes the user feel heard and 
         ).with_model("openai", "gpt-5")
 
         user_message = UserMessage(text=message)
-        response = await chat.send_message(user_message)
         
-        return response
+        # Try with a timeout
+        import asyncio
+        try:
+            response = await asyncio.wait_for(chat.send_message(user_message), timeout=15.0)
+            return response
+        except asyncio.TimeoutError:
+            logging.warning(f"AI response timeout for session {session_id}")
+            # Return appropriate fallback response
+            if is_crisis:
+                return "I understand you're going through a very difficult time right now. Your feelings are valid, and I want you to know that help is available. Please reach out to one of the crisis helplines below or contact emergency services if you're in immediate danger. You are not alone, and there are people who want to help you through this."
+            else:
+                return "I hear you, and I want you to know that what you're experiencing is valid. Sometimes we all need support to work through our challenges. While I'm having some technical difficulties right now, please know that there are resources and people available to help you. Consider speaking with a counselor, trusted friend, or family member about how you're feeling."
+        
     except Exception as e:
         logging.error(f"AI response error: {e}")
-        return "I'm here to listen and support you. While I'm having technical difficulties right now, please know that what you're feeling is valid. If you're in crisis, please reach out to a mental health helpline immediately."
+        if is_crisis:
+            return "I can see you're in distress, and I want you to know that your life has value. Please reach out to a mental health professional or crisis helpline immediately. If you're in immediate danger, contact emergency services. You deserve support and care."
+        else:
+            return "I'm here to listen and support you. While I'm experiencing some technical difficulties, please know that what you're feeling is important. Consider reaching out to a mental health professional or trusted person in your life for support."
 
 # API Routes
 @api_router.get("/")
